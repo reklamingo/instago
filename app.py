@@ -18,16 +18,13 @@ def get_commenters(post_url):
             browser = p.chromium.launch(headless=True, args=["--disable-blink-features=AutomationControlled"])
             context = browser.new_context()
             page = context.new_page()
-
-            response = page.goto(post_url, timeout=90000)
+            page.goto(post_url, timeout=90000)
             page.wait_for_timeout(5000)
 
-            # URL kontrolü
             if "login" in page.url:
                 return ["HATA: Instagram giriş sayfasına yönlendirildi (koruma engeli)."]
 
             page.wait_for_selector("ul", timeout=15000)
-
             for _ in range(8):
                 page.mouse.wheel(0, 2500)
                 page.wait_for_timeout(1000)
@@ -47,6 +44,49 @@ def get_commenters(post_url):
         return [f"HATA: {str(e)}"]
     return list(commenters)
 
+def get_likers(post_url):
+    likers = set()
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True, args=["--disable-blink-features=AutomationControlled"])
+            context = browser.new_context()
+            page = context.new_page()
+            page.goto(post_url, timeout=90000)
+            page.wait_for_timeout(5000)
+
+            if "login" in page.url:
+                return ["HATA: Instagram giriş sayfasına yönlendirildi (koruma engeli)."]
+
+            # Beğeni popup'ını aç
+            try:
+                page.click("text=n beğenme", timeout=5000)
+            except:
+                try:
+                    page.click("svg[aria-label='Beğeniler'] ~ span", timeout=5000)
+                except:
+                    return ["HATA: Beğeni popup açılamadı."]
+
+            page.wait_for_timeout(3000)
+
+            for _ in range(10):
+                page.mouse.wheel(0, 2500)
+                page.wait_for_timeout(1000)
+                try:
+                    usernames = page.query_selector_all("div[role='dialog'] a")
+                    for u in usernames:
+                        try:
+                            text = u.inner_text()
+                            if text.startswith("@"):
+                                likers.add(text.strip())
+                        except:
+                            continue
+                except:
+                    continue
+            browser.close()
+    except Exception as e:
+        return [f"HATA: {str(e)}"]
+    return list(likers)
+
 @app.route("/", methods=["GET"])
 def index():
     with open("index.html", "r", encoding="utf-8") as f:
@@ -62,9 +102,12 @@ def cekilis():
         if tip == "yorum":
             kullanicilar = get_commenters(link)
         else:
-            kullanicilar = ["@like1", "@like2", "@like3", "@like4", "@like5"]
+            kullanicilar = get_likers(link)
 
-        if not kullanicilar or "HATA" in kullanicilar[0]:
+        if not kullanicilar:
+            return "<p><strong>Hata:</strong> Kullanıcı bulunamadı.</p><a href='/'>Geri dön</a>"
+
+        if any("HATA" in k for k in kullanicilar):
             return f"<p><strong>Hata oluştu:</strong><br>{kullanicilar[0]}</p><a href='/'>Geri dön</a>"
 
         kazananlar = random.sample(kullanicilar, min(sayi, len(kullanicilar)))
