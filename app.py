@@ -31,14 +31,16 @@ def get_commenters(post_url):
                 page.mouse.wheel(0, 3000)
                 page.wait_for_timeout(1000)
 
-            links = page.query_selector_all("a")
-            for link in links:
+            for link in page.query_selector_all("a"):
                 try:
-                    txt = link.inner_text()
-                    if txt.startswith("@") and len(txt) < 50:
-                        commenters.add(txt.strip())
+                    href = link.get_attribute("href")
+                    if href and href.startswith("/") and href.count("/") == 2:
+                        username = href.strip("/").split("/")[0]
+                        if username not in ["explore", "p", "reel", "stories", "accounts"]:
+                            commenters.add("@" + username)
                 except:
                     continue
+
             browser.close()
     except Exception as e:
         return [f"HATA: {str(e)}"]
