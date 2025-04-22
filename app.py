@@ -14,7 +14,7 @@ def get_commenters(post_url):
     try:
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
-            context = p.new_context(user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+            context = browser.new_context(user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
             page = context.new_page()
             page.goto(post_url, timeout=90000)
             page.wait_for_timeout(5000)
