@@ -18,13 +18,19 @@ def get_commenters(post_url):
             page = context.new_page()
             page.goto(post_url, timeout=90000)
             page.wait_for_timeout(5000)
+
             if "login" in page.url:
                 return ["HATA: Instagram giriş sayfasına yönlendirildi."]
-            page.wait_for_selector("article", timeout=15000)
+
+            try:
+                page.wait_for_selector("main", timeout=20000)
+            except:
+                return ["HATA: Gönderi içeriği yüklenmedi. Instagram engellemiş olabilir."]
+
             for _ in range(12):
                 page.mouse.wheel(0, 3000)
                 page.wait_for_timeout(1000)
-            page.wait_for_timeout(3000)
+
             links = page.query_selector_all("a")
             for link in links:
                 try:
