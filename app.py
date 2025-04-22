@@ -2,9 +2,8 @@
 from flask import Flask, request, render_template_string
 from playwright.sync_api import sync_playwright
 import random
-import re
-import os
 import string
+import os
 
 app = Flask(__name__)
 cekilis_sonuclari = {}
@@ -14,21 +13,38 @@ def generate_code(length=6):
 
 def get_commenters(post_url):
     commenters = set()
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
-        page.goto(post_url, timeout=60000)
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True, args=["--disable-blink-features=AutomationControlled"])
+            context = browser.new_context()
+            page = context.new_page()
 
-        page.wait_for_selector("ul > li")
-        for _ in range(5):
-            page.mouse.wheel(0, 4000)
-            page.wait_for_timeout(1500)
-            links = page.query_selector_all("ul > li > div > div > div > span > a")
-            for l in links:
-                username = l.inner_text()
-                if username and username.startswith("@"):
-                    commenters.add(username)
-        browser.close()
+            response = page.goto(post_url, timeout=90000)
+            page.wait_for_timeout(5000)
+
+            # URL kontrolü
+            if "login" in page.url:
+                return ["HATA: Instagram giriş sayfasına yönlendirildi (koruma engeli)."]
+
+            page.wait_for_selector("ul", timeout=15000)
+
+            for _ in range(8):
+                page.mouse.wheel(0, 2500)
+                page.wait_for_timeout(1000)
+                try:
+                    a_tags = page.query_selector_all("ul li div div div span a")
+                    for a in a_tags:
+                        try:
+                            text = a.inner_text()
+                            if text.startswith("@"):
+                                commenters.add(text.strip())
+                        except:
+                            continue
+                except:
+                    continue
+            browser.close()
+    except Exception as e:
+        return [f"HATA: {str(e)}"]
     return list(commenters)
 
 @app.route("/", methods=["GET"])
@@ -46,10 +62,10 @@ def cekilis():
         if tip == "yorum":
             kullanicilar = get_commenters(link)
         else:
-            kullanicilar = ["@like1", "@like2", "@like3", "@like4", "@like5"]  # Beğeni scraping sonra yapılacak
+            kullanicilar = ["@like1", "@like2", "@like3", "@like4", "@like5"]
 
-        if not kullanicilar:
-            return "Kullanıcı bulunamadı. Gönderi herkese açık mı veya yorum var mı kontrol edin."
+        if not kullanicilar or "HATA" in kullanicilar[0]:
+            return f"<p><strong>Hata oluştu:</strong><br>{kullanicilar[0]}</p><a href='/'>Geri dön</a>"
 
         kazananlar = random.sample(kullanicilar, min(sayi, len(kullanicilar)))
         kod = "cekilis_" + generate_code()
