@@ -1,0 +1,24 @@
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Instagram Çekiliş Aracı</title>
+</head>
+<body style="font-family: sans-serif; background-color: #f2f2f2; padding: 40px;">
+    <h2>Instagram Çekiliş Aracı</h2>
+    <form action="/cekilis" method="post">
+        <label>Instagram Gönderi Linki:</label><br>
+        <input type="text" name="link" required style="width: 300px;"><br><br>
+        
+        <label>Kaç kişi seçilsin?</label><br>
+        <input type="number" name="sayi" required min="1"><br><br>
+
+        <label>Katılımcılar:</label><br>
+        <input type="radio" name="tip" value="yorum" checked> Yoruma Katılanlar<br>
+        <input type="radio" name="tip" value="begenen"> Beğenenler<br><br>
+        
+        <button type="submit">Çekilişi Başlat</button>
+    </form>
+</body>
+</html>
